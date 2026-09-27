@@ -18,6 +18,8 @@ volatile int counter = 0;
 volatile int minutes = 0;
 volatile int hours = 0;
 
+int prime = 1234567;
+
 int timeoutcount = 0;
 
 int mytime = 0x5957;
@@ -67,10 +69,34 @@ int get_btn(void){
 }
 
 
-
 /* Below is the function that will be called when an interrupt is triggered. */
-void handle_interrupt(unsigned cause) 
-{}
+void handle_interrupt(unsigned cause) {
+  /* Kod för att visa tid på 7-segment display */
+  volatile int *timer_status = (volatile int *) 0x04000020;
+  *timer_status = 0; /* timern har sett timeouten*/
+
+  timeoutcount++;
+  if (timeoutcount >= 10){
+
+    if (counter == 60) { counter = 0; minutes += 1; }
+    if (minutes == 60) { minutes = 0; hours += 1; }
+    if (hours == 24) { hours = 0; }
+
+    set_displays(0, counter % 10);
+    set_displays(1, counter / 10);
+    set_displays(2, minutes % 10);
+    set_displays(3, minutes / 10);
+    set_displays(4, hours % 10);
+    set_displays(5, hours / 10);
+    
+    tick( &mytime );
+    counter++;
+  }
+
+  
+}
+
+extern void enable_interrupt(void); 
 
 /* Add your code here for initializing interrupts. */
 void labinit(void)
@@ -84,70 +110,19 @@ void labinit(void)
   *timer_periodh = 0x002D;
 
     // start + continuous, interrupt bit left at 0 (we poll)
-  *timer_control = 0x6;   // 0b0110: START (bit 2) | CONT (bit 1)
+  *timer_control = 0x7;   // 0b0110: START (bit 2) | CONT (bit 1)
+
+  enable_interrupt();
 }
 
 /* Your code goes into main as well as any needed functions. */
 int main() {
-  // Call labinit()
-  set_displays(1, 0);
-  set_displays(2, 0);
-  set_displays(3, 0);
-  set_displays(4, 0);
-  set_displays(5, 0);
-  set_displays(0, 8);
   labinit();
-
-  // Enter a forever loop
   while (1) {
-
-    if (get_sw() & (1 << 7)) break;
-
-    if(get_btn()){
-      int sw = get_sw();
-      int select = (sw >> 8) & 0x3;
-      int value = sw & 0x3F;
-      if (select == 1) counter = value;
-      else if (select == 2) minutes = value;
-      else if (select == 3) hours = value;
-    }
-
-    volatile int *timer_status = (volatile int *) 0x04000020;
-
-    if(*timer_status & 0x1){
-      *timer_status = 0;
-      timeoutcount++;
-      if (timeoutcount >= 10){
-        timeoutcount = 0;
-
-        if (counter == 60){
-          counter = 0;
-          minutes += 1; 
-        }
-
-        if (minutes == 60){
-          minutes = 0; 
-          hours += 1;
-        }
-
-        if(hours == 24){
-         break;
-        }
-
-        set_displays(0, counter % 10);
-        set_displays(1, counter / 10);
-        set_displays(2, minutes % 10);
-        set_displays(3, minutes / 10);
-        set_displays(4, hours % 10);
-        set_displays(5, hours / 10);
-
-        time2string( textstring, mytime ); // Converts mytime to string
-        display_string( textstring ); //Print out the string 'textstring'
-        tick( &mytime );     // Ticks the clock once
-
-        counter++;
-      }
-    }
+    print("Prime: ");
+    prime = nextprime( prime );
+    print_dec( prime );
+    print("\n");
   }
 }
 
