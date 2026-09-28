@@ -125,13 +125,3 @@ _start:
 	jal main
 	
 loop:	j loop
-
-.globl enable_interrupt
-enable_interrupt:
-	li t0, 0x10000          
-    csrs mie, t0
-
-	li t0, 0x8
-    csrs mstatus, t0
-
-    jalr zero, ra, 0      

@@ -18,10 +18,6 @@ volatile int counter = 0;
 volatile int minutes = 0;
 volatile int hours = 0;
 
-int prime = 1234567;
-
-int timeoutcount = 0;
-
 int mytime = 0x5957;
 char textstring[] = "text, more text, and even more text!";
 
@@ -69,18 +65,58 @@ int get_btn(void){
 }
 
 
+
 /* Below is the function that will be called when an interrupt is triggered. */
-void handle_interrupt(unsigned cause) {
-  /* Kod för att visa tid på 7-segment display */
-  volatile int *timer_status = (volatile int *) 0x04000020;
-  *timer_status = 0; /* timern har sett timeouten*/
+void handle_interrupt(unsigned cause) 
+{}
 
-  timeoutcount++;
-  if (timeoutcount >= 10){
+/* Add your code here for initializing interrupts. */
+void labinit(void)
+{}
 
-    if (counter == 60) { counter = 0; minutes += 1; }
-    if (minutes == 60) { minutes = 0; hours += 1; }
-    if (hours == 24) { hours = 0; }
+/* Your code goes into main as well as any needed functions. */
+int main() {
+  // Call labinit()
+  set_displays(1, 0);
+  set_displays(2, 0);
+  set_displays(3, 0);
+  set_displays(4, 0);
+  set_displays(5, 0);
+  set_displays(0, 8);
+  labinit();
+
+  for (int i = 0; i < 16; i++) {   // 0000 -> 1111
+    set_leds(i);
+    delay(2);                      // ~1 "second"
+  }
+
+  // Enter a forever loop
+  while (1) {
+
+    if (get_sw() & (1 << 7)) break;
+
+    if(get_btn()){
+      int sw = get_sw();
+      int select = (sw >> 8) & 0x3;
+      int value = sw & 0x3F;
+      if (select == 1) counter = value;
+      else if (select == 2) minutes = value;
+      else if (select == 3) hours = value;
+    }
+    
+    if (counter == 60){
+      counter = 0;
+      minutes += 1; 
+    }
+
+    if (minutes == 60){
+      minutes = 0; 
+      hours += 1;
+    }
+
+    if(hours == 24){
+      break;
+    }
 
     set_displays(0, counter % 10);
     set_displays(1, counter / 10);
@@ -89,40 +125,14 @@ void handle_interrupt(unsigned cause) {
     set_displays(4, hours % 10);
     set_displays(5, hours / 10);
     
-    tick( &mytime );
+    time2string( textstring, mytime ); // Converts mytime to string
+    display_string( textstring ); //Print out the string 'textstring'
+    delay( 2 );          // Delays 1 sec (adjust this value)
+    tick( &mytime );     // Ticks the clock once
+    
+    /* set timme minut sekund*/
+
     counter++;
-  }
-
-  
-}
-
-extern void enable_interrupt(void); 
-
-/* Add your code here for initializing interrupts. */
-void labinit(void)
-{
-  volatile int *timer_control = (volatile int *) 0x04000024;
-  volatile int *timer_periodl = (volatile int *) 0x04000028;
-  volatile int *timer_periodh = (volatile int *) 0x0400002C;
-
-  // period for 100 ms: 2,999,999 cycles
-  *timer_periodl = 0xC6BF;
-  *timer_periodh = 0x002D;
-
-    // start + continuous, interrupt bit left at 0 (we poll)
-  *timer_control = 0x7;   // 0b0110: START (bit 2) | CONT (bit 1)
-
-  enable_interrupt();
-}
-
-/* Your code goes into main as well as any needed functions. */
-int main() {
-  labinit();
-  while (1) {
-    print("Prime: ");
-    prime = nextprime( prime );
-    print_dec( prime );
-    print("\n");
   }
 }
 

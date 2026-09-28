@@ -85,6 +85,11 @@ int main() {
   set_displays(0, 8);
   labinit();
 
+  for (int i = 0; i < 16; i++) {   // 0000 -> 1111
+    set_leds(i);
+    delay(2);                      // ~1 "second"
+  }
+
   // Enter a forever loop
   while (1) {
 
@@ -99,8 +104,6 @@ int main() {
       else if (select == 3) hours = value;
     }
     
-
-
     if (counter == 60){
       counter = 0;
       minutes += 1; 

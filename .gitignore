@@ -1,3 +1,7 @@
 *.o
 .DS_Store
 lab-mario/
+*.bin
+*.elf
+*.elf.txt
+*.swp
